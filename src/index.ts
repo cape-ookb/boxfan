@@ -60,6 +60,22 @@ function fieldPredicate(
       return v !== undefined && v !== null && v !== "" && v !== false;
     };
   }
+  // Comparison operators: ">3", "<10", ">=5.5", "<=-1"
+  if (typeof match === "string") {
+    const cmp = match.match(/^([><]=?)([-]?\d+(?:\.\d+)?)$/);
+    if (cmp) {
+      const op = cmp[1];
+      const threshold = Number(cmp[2]);
+      return (item) => {
+        const v = resolvePath(item, key);
+        if (typeof v !== "number") return false;
+        if (op === ">") return v > threshold;
+        if (op === "<") return v < threshold;
+        if (op === ">=") return v >= threshold;
+        return v <= threshold; // "<="
+      };
+    }
+  }
   if (isArray(match)) {
     // Any-of: value must be one of the listed values.
     return (item) => {

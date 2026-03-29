@@ -327,6 +327,92 @@ describe("buildMatcher", () => {
   });
 });
 
+describe("comparison operators", () => {
+  const items = [
+    { id: 1, score: 10 },
+    { id: 2, score: 20 },
+    { id: 3, score: 30 },
+    { id: 4, score: 3 },
+    { id: 5, score: -1 },
+  ];
+
+  it("> filters values greater than threshold", () => {
+    const result = filterBy(items, { score: ">10" });
+    expect(result.map((r) => r.id)).toEqual([2, 3]);
+  });
+
+  it("< filters values less than threshold", () => {
+    const result = filterBy(items, { score: "<10" });
+    expect(result.map((r) => r.id)).toEqual([4, 5]);
+  });
+
+  it(">= includes the threshold value", () => {
+    const result = filterBy(items, { score: ">=10" });
+    expect(result.map((r) => r.id)).toEqual([1, 2, 3]);
+  });
+
+  it("<= includes the threshold value", () => {
+    const result = filterBy(items, { score: "<=10" });
+    expect(result.map((r) => r.id)).toEqual([1, 4, 5]);
+  });
+
+  it("supports negative thresholds", () => {
+    const result = filterBy(items, { score: ">-1" });
+    expect(result.map((r) => r.id)).toEqual([1, 2, 3, 4]);
+  });
+
+  it("supports decimal thresholds", () => {
+    const result = filterBy(items, { score: ">9.5" });
+    expect(result.map((r) => r.id)).toEqual([1, 2, 3]);
+  });
+
+  it("returns false for non-numeric field values", () => {
+    const mixed = [
+      { id: 1, value: "hello" },
+      { id: 2, value: 5 },
+      { id: 3, value: null },
+      { id: 4, value: true },
+      { id: 5, value: undefined },
+    ];
+    const result = filterBy(mixed, { value: ">3" });
+    expect(result.map((r) => r.id)).toEqual([2]);
+  });
+
+  it("does not treat plain strings as comparisons", () => {
+    const strings = [
+      { id: 1, name: "alice" },
+      { id: 2, name: ">3" },
+    ];
+    // ">3" is a comparison operator, so it compares name (a string) numerically → no match
+    const result = filterBy(strings, { name: ">3" });
+    expect(result).toEqual([]);
+  });
+
+  it("does not match strings that only start with operator", () => {
+    // ">abc" is not a valid comparison — should be treated as exact match
+    const items = [{ id: 1, tag: ">abc" }];
+    const result = filterBy(items, { tag: ">abc" });
+    expect(result).toHaveLength(1);
+  });
+
+  it("works inside allPass, anyPass, nonePass", () => {
+    const result = filterBy(items, {
+      allPass: { score: ">=10" },
+      nonePass: { score: ">20" },
+    });
+    expect(result.map((r) => r.id)).toEqual([1, 2]);
+  });
+
+  it("works with dot-notation paths", () => {
+    const nested = [
+      { id: 1, stats: { points: 50 } },
+      { id: 2, stats: { points: 150 } },
+    ];
+    const result = filterBy(nested, { "stats.points": ">100" });
+    expect(result.map((r) => r.id)).toEqual([2]);
+  });
+});
+
 describe("serialization round-trip", () => {
   it("filter descriptor survives JSON serialization", () => {
     const descriptor = {

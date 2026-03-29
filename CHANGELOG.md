@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.0
+
+### New features
+
+- **Comparison operators:** filter by numeric thresholds using `">3"`, `"<10"`, `">=5.5"`, `"<=-1"` as match values. Only matches when the field value is a number — strings, nulls, and booleans return `false`. Works everywhere: `allPass`, `anyPass`, `nonePass`, dot-paths, and pipelines.
+
 ## 1.0.0
 
 Complete rewrite in TypeScript using [Remeda](https://remedajs.com/). Filter descriptors are now plain objects designed for serialization.

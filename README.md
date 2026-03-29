@@ -126,7 +126,7 @@ A filter descriptor is a plain object with one or more of these keys:
 | `anyPass` | At least ONE condition must match | `anyPass` |
 | `nonePass` | NONE of the conditions may match | negated `anyPass` |
 
-These are **reserved keys**. If any of them are present the object is interpreted as a filter descriptor, not as bare field conditions. Avoid using these as field names in your data. The string `"*"` is a **reserved value** — it acts as a wildcard (field must exist and be truthy) and cannot be used as a literal match.
+These are **reserved keys**. If any of them are present the object is interpreted as a filter descriptor, not as bare field conditions. Avoid using these as field names in your data. The string `"*"` is a **reserved value** — it acts as a wildcard (field must exist and be truthy) and cannot be used as a literal match. Strings matching the pattern `[><]=?\d+` (e.g. `">3"`, `"<=99.5"`) are **reserved for comparison operators** and cannot be used as literal match values.
 
 If none of these keys are present, the object is treated as `allPass`:
 
@@ -149,6 +149,11 @@ Each condition maps a dot-notation key to a match value:
 
 // Any-of — value must be one of the listed values
 { anyPass: { color: ["blue", "green"] } }
+
+// Comparison operators — >, <, >=, <=
+{ allPass: { score: ">10" } }
+{ allPass: { price: "<=99.99" } }
+{ allPass: { temp: ">-5" } }
 
 // Dot-notation — resolve nested paths
 { allPass: { "meta.role": "admin" } }
@@ -246,7 +251,7 @@ JSON Schema doesn't have dot-path access, so nested checks get deeply nested. `a
 { "in": [{ "var": "color" }, ["blue", "green"]] }
 ```
 
-**Use json-logic-js when:** you need a general-purpose rules engine — arithmetic, comparisons (`>`, `<`), string operations, `map`/`reduce`, or control flow. It's also cross-language (implementations exist in Python, Ruby, PHP, etc.).
+**Use json-logic-js when:** you need a general-purpose rules engine — arithmetic, string operations, `map`/`reduce`, or control flow. It's also cross-language (implementations exist in Python, Ruby, PHP, etc.). (Note: boxfan now supports basic numeric comparisons — `">10"`, `"<=99.5"` — for simple threshold checks without needing a full rules engine.)
 
 **Use boxfan when:** you only need object matching and want descriptors that are compact and self-evident. A non-technical person can read `{ "allPass": { "role": "admin" } }` and understand it.
 
