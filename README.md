@@ -63,7 +63,7 @@ const pageContext = {
 };
 
 matchContext(placements, pageContext, "targeting");
-// �� [placements[0], placements[2], placements[3]]
+// [placements[0], placements[2], placements[3]]
 ```
 
 Items with no value (or `null`) at `filterKey` are always included.
@@ -190,6 +190,67 @@ import type { FilterDescriptor, FilterInput } from "boxfan";
 
 - **`FilterDescriptor`** — `{ allPass?, anyPass?, nonePass? }`
 - **`FilterInput`** — a single descriptor, bare conditions, or an array of descriptors (pipeline)
+
+## Why not JSON Schema?
+
+JSON Schema is more powerful and standardized, but verbose for simple object matching:
+
+```jsonc
+// boxfan
+{ "allPass": { "role": "admin", "section.id": "marketing" } }
+
+// JSON Schema equivalent
+{
+  "type": "object",
+  "required": ["role"],
+  "properties": {
+    "role": { "const": "admin" },
+    "section": {
+      "type": "object",
+      "properties": {
+        "id": { "const": "marketing" }
+      }
+    }
+  }
+}
+```
+
+JSON Schema doesn't have dot-path access, so nested checks get deeply nested. `anyOf`/`allOf`/`not` map to boxfan's `anyPass`/`allPass`/`nonePass` but with more boilerplate.
+
+**Use JSON Schema when:** you already validate payloads with it, or need complex type constraints (regex patterns, numeric ranges, array length). Validators like [ajv](https://ajv.js.org/) compile schemas to fast predicates too.
+
+**Use boxfan when:** you're storing targeting rules, feature flags, or filter configs in a database and want something compact, readable, and purpose-built for "does this object match?" rather than "is this object valid?"
+
+### vs json-logic-js
+
+[json-logic-js](https://jsonlogic.com/) is a general-purpose rules engine — it can express any computation as JSON, not just matching. The tradeoff is verbosity:
+
+```jsonc
+// boxfan
+{ "allPass": { "role": "admin", "section.id": "marketing" } }
+
+// json-logic-js equivalent
+{
+  "and": [
+    { "==": [{ "var": "role" }, "admin"] },
+    { "==": [{ "var": "section.id" }, "marketing"] }
+  ]
+}
+```
+
+```jsonc
+// boxfan — any-of
+{ "anyPass": { "color": ["blue", "green"] } }
+
+// json-logic-js
+{ "in": [{ "var": "color" }, ["blue", "green"]] }
+```
+
+**Use json-logic-js when:** you need a general-purpose rules engine — arithmetic, comparisons (`>`, `<`), string operations, `map`/`reduce`, or control flow. It's also cross-language (implementations exist in Python, Ruby, PHP, etc.).
+
+**Use boxfan when:** you only need object matching and want descriptors that are compact and self-evident. A non-technical person can read `{ "allPass": { "role": "admin" } }` and understand it.
+
+> **See also:** [runflower](https://github.com/cape-ookb/runflower) — a serializable function composition engine built on lodash/fp. If you need serializable *transformations* (map, pick, flow) in addition to predicates, runflower sits between boxfan and json-logic-js in scope.
 
 ## License
 
