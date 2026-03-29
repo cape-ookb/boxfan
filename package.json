@@ -1,6 +1,6 @@
 {
   "name": "boxfan",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Serializable JSON filter descriptors for object matching, targeting, and feature flags",
   "type": "module",
   "main": "dist/index.js",
