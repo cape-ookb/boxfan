@@ -1,7 +1,7 @@
 {
   "name": "boxfan",
   "version": "1.0.0",
-  "description": "Serializable JSON filter predicates using Remeda",
+  "description": "Serializable JSON filter descriptors for object matching, targeting, and feature flags",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -21,21 +21,27 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/cape-io/boxfan.git"
+    "url": "git://github.com/cape-ookb/boxfan.git"
   },
   "keywords": [
-    "json",
     "filter",
     "predicate",
+    "query",
+    "match",
+    "targeting",
+    "feature-flags",
     "serializable",
-    "data"
+    "json",
+    "remeda",
+    "allPass",
+    "anyPass"
   ],
-  "author": "Kai Curry <kai@cape.io> (http://www.cape.io/)",
+  "author": "Kai Curry <kai@wjerk.com> (https://www.kaicurry.com/)",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/cape-io/boxfan/issues"
+    "url": "https://github.com/cape-ookb/boxfan/issues"
   },
-  "homepage": "https://github.com/cape-io/boxfan",
+  "homepage": "https://github.com/cape-ookb/boxfan",
   "dependencies": {
     "remeda": "^2.33.6"
   },
