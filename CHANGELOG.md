@@ -9,7 +9,7 @@ Complete rewrite in TypeScript using [Remeda](https://remedajs.com/). Filter des
 - **Renamed filter keys:** `must` → `allPass`, `should` → `anyPass`, `must_not` → `nonePass`
 - **Renamed main function:** the default export is now `filterBy` (was an unnamed function)
 - **Dependencies replaced:** lodash, dot-object, and JSONPath removed. Remeda is the sole dependency.
-- **CoffeeScript removed:** source is now TypeScript. Package exports from `dist/`.
+- **CoffeeScript removed:** source is now TypeScript. Exports compiled JS and TS source via conditional exports.
 - **ESM only:** package uses `"type": "module"`.
 
 ### Migration from 0.x
