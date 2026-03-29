@@ -132,8 +132,22 @@ function buildSinglePredicate(
   const desc = normalise(raw);
   const predicates: ((item: Record<string, unknown>) => boolean)[] = [];
 
-  if (desc.allPass && isPlainObject(desc.allPass)) {
-    predicates.push(allPassPredicate(desc.allPass));
+  // Collect extra keys (not reserved) as implicit allPass conditions.
+  const reserved = new Set(["allPass", "nonePass", "anyPass"]);
+  const extra: FieldConditions = {};
+  for (const key of Object.keys(desc)) {
+    if (!reserved.has(key)) {
+      extra[key] = (desc as Record<string, unknown>)[key] as FieldMatch;
+    }
+  }
+
+  const merged: FieldConditions = {
+    ...extra,
+    ...(isPlainObject(desc.allPass) ? desc.allPass : {}),
+  };
+
+  if (Object.keys(merged).length > 0) {
+    predicates.push(allPassPredicate(merged));
   }
   if (desc.nonePass) {
     const any = anyPassPredicate(desc.nonePass);

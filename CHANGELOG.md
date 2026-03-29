@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0
+
+### New features
+
+- **Implicit allPass for extra keys:** Non-reserved keys alongside `allPass`, `anyPass`, or `nonePass` are now treated as implicit `allPass` conditions. For example, `{ anyPass: { color: ["blue", "green"] }, name: "kai" }` is equivalent to `{ anyPass: { color: ["blue", "green"] }, allPass: { name: "kai" } }`.
+
 ## 1.1.0
 
 ### New features

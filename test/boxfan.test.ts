@@ -43,6 +43,35 @@ describe("filterBy", () => {
     expect(result[0].id).toBe(1);
   });
 
+  it("treats extra keys alongside anyPass as implicit allPass", () => {
+    const result = filterBy(data, {
+      anyPass: { name: ["tim", "kai"] },
+      color: "blue",
+    } as any);
+    // anyPass matches tim(3,6) and kai(1), but color=blue narrows to kai(1) and kristian(5→no, not in anyPass)
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe(1);
+  });
+
+  it("treats extra keys alongside nonePass as implicit allPass", () => {
+    const result = filterBy(data, {
+      nonePass: { name: "kai" },
+      color: "green",
+    } as any);
+    // color=green → ids 2,6; nonePass kai excludes nothing from those
+    expect(result.map((r) => r.id)).toEqual([2, 6]);
+  });
+
+  it("merges extra keys with explicit allPass", () => {
+    const result = filterBy(data, {
+      allPass: { name: "kristian" },
+      color: "blue",
+    } as any);
+    // name=kristian AND color=blue → id 5
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe(5);
+  });
+
   it("returns boolean for a single object", () => {
     expect(filterBy({ name: "kai" }, { allPass: { name: "kai" } })).toBe(true);
     expect(filterBy({ name: "kai" }, { allPass: { name: "bob" } })).toBe(false);
@@ -161,6 +190,15 @@ describe("pipeline (array of filters)", () => {
     expect(result).toHaveLength(data.length);
   });
 
+  it("bare objects in pipeline default to allPass", () => {
+    const result = filterBy(data, [
+      { name: "tim" },
+      { color: "green" },
+    ]);
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe(6);
+  });
+
   it("works with a single object input", () => {
     expect(
       filterBy({ name: "kai", color: "blue" }, [
@@ -214,6 +252,16 @@ describe("grouped OR (anyPass with array of groups)", () => {
       ],
     });
     expect(result.map((r) => r.id)).toEqual([2, 4, 5]);
+  });
+
+  it("empty anyPass array matches nothing", () => {
+    const result = filterBy(slots, { anyPass: [] });
+    expect(result).toEqual([]);
+  });
+
+  it("empty nonePass array matches everything", () => {
+    const result = filterBy(slots, { nonePass: [] });
+    expect(result).toHaveLength(slots.length);
   });
 
   it("pipeline: allPass section=marketing then anyPass slot groups", () => {

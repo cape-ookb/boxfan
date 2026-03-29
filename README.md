@@ -126,7 +126,15 @@ A filter descriptor is a plain object with one or more of these keys:
 | `anyPass` | At least ONE condition must match | `anyPass` |
 | `nonePass` | NONE of the conditions may match | negated `anyPass` |
 
-These are **reserved keys**. If any of them are present the object is interpreted as a filter descriptor, not as bare field conditions. Avoid using these as field names in your data. The string `"*"` is a **reserved value** — it acts as a wildcard (field must exist and be truthy) and cannot be used as a literal match. Strings matching the pattern `[><]=?\d+` (e.g. `">3"`, `"<=99.5"`) are **reserved for comparison operators** and cannot be used as literal match values.
+These are **reserved keys**. Any extra keys alongside them are treated as implicit `allPass` conditions:
+
+```ts
+// These are equivalent:
+filterBy(data, { anyPass: { color: ["blue", "green"] }, name: "kai" });
+filterBy(data, { anyPass: { color: ["blue", "green"] }, allPass: { name: "kai" } });
+```
+
+Avoid using these as field names in your data. The string `"*"` is a **reserved value** — it acts as a wildcard (field must exist and be truthy) and cannot be used as a literal match. Strings matching the pattern `[><]=?\d+` (e.g. `">3"`, `"<=99.5"`) are **reserved for comparison operators** and cannot be used as literal match values.
 
 If none of these keys are present, the object is treated as `allPass`:
 
