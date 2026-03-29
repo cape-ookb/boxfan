@@ -86,6 +86,21 @@ describe("filterBy", () => {
     expect(result[0].id).toBe(2);
   });
 
+  it("filters nullable objects by nested property", () => {
+    const items = [
+      { id: 1, user: { id: 100 } },
+      { id: 2, user: null },
+      { id: 3, user: { id: 200 } },
+    ];
+    const withUser = filterBy(items, { "user.id": 100 });
+    expect(withUser).toHaveLength(1);
+    expect(withUser[0].id).toBe(1);
+
+    const nullUser = filterBy(items, { user: null });
+    expect(nullUser).toHaveLength(1);
+    expect(nullUser[0].id).toBe(2);
+  });
+
   it("supports dot-notation paths", () => {
     const nested = [
       { id: 1, meta: { role: "admin" } },
