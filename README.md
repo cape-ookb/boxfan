@@ -1,10 +1,196 @@
 # boxfan
 
-You send boxfan two arguments. The first argument is an array of objects or a single object. The second argument is an object with one or more of the following properties
-`must, must_not, should`.
+Serializable JSON filter predicates. Built on [Remeda](https://remedajs.com/).
 
-Boxfan is currently about exact matches. Use `*` as a wildcard to match anything. The asterisk feature will be supplemented with `hasFields` soon. The asterisk checks for a value where `hasFields` checks if not undefined.
+Filter descriptors are plain JSON objects — no functions, no classes — so they can be sent over the wire, stored in a database, or embedded in configuration.
 
-I wanted to call this module HEPA but it's more like a box fan with a furnace filter on the back. So that's why it's boxfan.
+## Install
 
-**Maybe this can be replaced with `_.overEvery`, `_.overSome`.**
+```bash
+pnpm add boxfan
+```
+
+## API
+
+### `filterBy(data, filter)`
+
+Filter an array of objects, or test a single object, against a filter descriptor.
+
+```ts
+import { filterBy } from "boxfan";
+
+const users = [
+  { id: 1, name: "kai", role: "admin" },
+  { id: 2, name: "bob", role: "user" },
+  { id: 3, name: "tim", role: "admin" },
+  { id: 4, name: "kristian", role: "user" },
+];
+
+// Array → returns filtered array
+filterBy(users, { allPass: { role: "admin" } });
+// → [{ id: 1, ... }, { id: 3, ... }]
+
+// Single object → returns boolean
+filterBy({ name: "kai", role: "admin" }, { allPass: { role: "admin" } });
+// → true
+```
+
+> **Tip:** For simple flat exact-match cases, you may not need boxfan at all.
+> Remeda's [`hasSubObject`](https://remedajs.com/docs/#hasSubObject) does the job:
+> ```ts
+> import { hasSubObject } from "remeda";
+> hasSubObject({ name: "kai", role: "admin" }, { role: "admin" }); // → true
+> ```
+> Reach for boxfan when you need wildcards, dot-paths, any-of arrays, compound OR groups, pipelines, or serializable filters embedded in data.
+
+### `matchContext(collection, context, filterKey)`
+
+The inverse of `filterBy`. Each item in the collection carries its own filter descriptor (at `filterKey`), tested against a context object. Useful for ad targeting, feature flags, notification routing, etc.
+
+```ts
+import { matchContext } from "boxfan";
+
+const placements = [
+  { id: 1, targeting: { allPass: { "section.id": "marketing" } } },
+  { id: 2, targeting: { allPass: { "section.id": "engineering" } } },
+  { id: 3, targeting: { anyPass: { "slot.id": ["header", "sidebar"] } } },
+  { id: 4 }, // no targeting → always matches
+];
+
+const pageContext = {
+  section: { id: "marketing" },
+  slot: { id: "header" },
+};
+
+matchContext(placements, pageContext, "targeting");
+// �� [placements[0], placements[2], placements[3]]
+```
+
+Items with no value (or `null`) at `filterKey` are always included.
+
+### `buildMatcher(collection, filterKey)`
+
+Pre-compile a collection's embedded filters into a reusable matcher. The collection is processed once — only the context changes per call. Ideal when the collection is loaded once (e.g. placements, feature flags) but tested against many different contexts (e.g. per page view, per request).
+
+```ts
+import { buildMatcher } from "boxfan";
+
+const match = buildMatcher(placements, "targeting");
+
+// Per request — filters are already compiled, no re-parsing
+match({ section: { id: "marketing" }, slot: { id: "header" } });
+// → [placements[0], placements[2], placements[3]]
+
+match({ section: { id: "engineering" }, slot: { id: "footer" } });
+// → [placements[1], placements[3]]
+```
+
+### `buildPredicate(filter)`
+
+Compile a filter into a reusable predicate function. Compile once, use many times. Accepts a descriptor object or a pipeline array.
+
+```ts
+import { buildPredicate } from "boxfan";
+
+const isAdmin = buildPredicate({ allPass: { role: "admin" } });
+isAdmin({ role: "admin" }); // → true
+isAdmin({ role: "user" });  // → false
+
+// Pipeline compiled into a single predicate
+const isNonBobAdmin = buildPredicate([
+  { allPass: { role: "admin" } },
+  { nonePass: { name: "bob" } },
+]);
+
+// Use directly with Array.filter
+const admins = users.filter(buildPredicate({ allPass: { role: "admin" } }));
+```
+
+> **JSON parsing:** `buildPredicate` accepts objects, not strings. Handle
+> JSON parsing closer to the source — e.g. when reading from a database or
+> API response, parse first, then compile:
+> ```ts
+> const rules = rows.map((row) => ({
+>   ...row,
+>   predicate: buildPredicate(JSON.parse(row.filterJson)),
+> }));
+> ```
+
+## Filter Descriptor
+
+A filter descriptor is a plain object with one or more of these keys:
+
+| Key | Behavior | Remeda equivalent |
+|-----|----------|-------------------|
+| `allPass` | ALL conditions must match | `allPass` |
+| `anyPass` | At least ONE condition must match | `anyPass` |
+| `nonePass` | NONE of the conditions may match | negated `anyPass` |
+
+These are **reserved keys**. If any of them are present the object is interpreted as a filter descriptor, not as bare field conditions. Avoid using these as field names in your data. The string `"*"` is a **reserved value** — it acts as a wildcard (field must exist and be truthy) and cannot be used as a literal match.
+
+If none of these keys are present, the object is treated as `allPass`:
+
+```ts
+// These are equivalent:
+filterBy(data, { name: "kai" });
+filterBy(data, { allPass: { name: "kai" } });
+```
+
+### Condition values
+
+Each condition maps a dot-notation key to a match value:
+
+```ts
+// Exact match
+{ allPass: { name: "kai" } }
+
+// Wildcard — any truthy value
+{ allPass: { pet: "*" } }
+
+// Any-of — value must be one of the listed values
+{ anyPass: { color: ["blue", "green"] } }
+
+// Dot-notation — resolve nested paths
+{ allPass: { "meta.role": "admin" } }
+```
+
+### Grouped OR (compound conditions)
+
+`anyPass` and `nonePass` accept an array of condition groups for OR-of-ANDs logic:
+
+```ts
+// (slot=header AND viewport=desktop) OR (slot=sidebar AND viewport=mobile)
+filterBy(data, {
+  anyPass: [
+    { "slot.id": "header", "viewport.id": "desktop" },
+    { "slot.id": "sidebar", "viewport.id": "mobile" },
+  ],
+});
+```
+
+### Pipeline (array of descriptors)
+
+Pass an array of descriptors to apply them as a pipeline — each one narrows the result of the previous:
+
+```ts
+filterBy(data, [
+  { allPass: { "section.id": "marketing" } },
+  { anyPass: [
+    { "slot.id": "header", "viewport.id": "desktop" },
+    { "slot.id": "sidebar", "viewport.id": "mobile" },
+  ]},
+]);
+```
+
+## Types
+
+```ts
+import type { FilterDescriptor, FilterInput } from "boxfan";
+```
+
+- **`FilterDescriptor`** — `{ allPass?, anyPass?, nonePass? }`
+- **`FilterInput`** — a single descriptor, bare conditions, or an array of descriptors (pipeline)
+
+## License
+
+ISC
