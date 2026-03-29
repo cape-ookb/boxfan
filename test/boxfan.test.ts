@@ -58,6 +58,34 @@ describe("filterBy", () => {
     expect(result[0].id).toBe(2); // only "cat" is non-empty
   });
 
+  it("matches a number value", () => {
+    const result = filterBy(data, { id: 3 });
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe("tim");
+  });
+
+  it("matches a boolean value", () => {
+    const result = filterBy(data, { pet: false });
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe(4);
+  });
+
+  it("does not match a boolean when no item has that value", () => {
+    const result = filterBy(data, { pet: true });
+    expect(result).toHaveLength(0);
+  });
+
+  it("matches a null value", () => {
+    const items = [
+      { id: 1, status: "active" },
+      { id: 2, status: null },
+      { id: 3, status: "inactive" },
+    ];
+    const result = filterBy(items, { status: null });
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe(2);
+  });
+
   it("supports dot-notation paths", () => {
     const nested = [
       { id: 1, meta: { role: "admin" } },
